@@ -1,27 +1,33 @@
-import subprocess
+from actions import open_notepad, open_browser
+from brain import understand_command
 
 print("Batka AI запущен!")
 
 while True:
     command = input("Что нужно сделать? ").strip().lower()
 
-    if command == "помощь":
+    intent = understand_command(command)
+
+    if intent == "HELP":
         print("Доступные команды:")
         print("- помощь")
         print("- открыть блокнот")
+        print("- открыть браузер")
         print("- привет")
         print("- выйти")
 
-    elif command == "открой блокнот":
-        print("Открываю блокнот...")
-        subprocess.Popen(["notepad.exe"])
+    elif intent == "OPEN_NOTEPAD":
+        open_notepad()
 
-    elif command == "привет":
+    elif intent == "OPEN_BROWSER":
+        open_browser()
+
+    elif intent == "HELLO":
         print("Привет! Batka AI на связи.")
 
-    elif command == "выйти":
+    elif intent == "EXIT":
         print("Завершение работы программы...")
         break
 
     else:
-        print("Неизвестная команда. Введите 'помощь' для списка доступных команд.")
+        print("Не удалось понять команду.")
