@@ -25,3 +25,7 @@ from BatkaAI.actions.office_actions import (
     append_word,
     add_word_heading
 )
+
+from BatkaAI.actions.excel_actions import (
+    excel_edit
+)
