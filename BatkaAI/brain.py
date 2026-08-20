@@ -14,6 +14,7 @@ def understand_command(command):
 OPEN_NOTEPAD
 OPEN_BROWSER
 SEARCH_WEB
+CREATE_FILE
 HELLO
 HELP
 EXIT
@@ -23,7 +24,9 @@ UNKNOWN
 
 {{
     "action": "НАЗВАНИЕ_ДЕЙСТВИЯ",
-    "query": ""
+    "query": "",
+    "filename": "",
+    "content": ""
 }}
 
 Правила:
@@ -31,26 +34,48 @@ UNKNOWN
 1. Если пользователь хочет что-либо найти в интернете:
    action = "SEARCH_WEB"
    query = то, что нужно найти.
+   filename = ""
+   content = ""
 
 2. Если пользователь просто хочет открыть браузер:
    action = "OPEN_BROWSER"
+   query = ""
+   filename = ""
+   content = ""
 
 3. Если пользователь хочет открыть блокнот:
    action = "OPEN_NOTEPAD"
+   query = ""
+   filename = ""
+   content = ""
 
-4. Для приветствия:
+4. Если пользователь приветствует:
    action = "HELLO"
+   query = ""
+   filename = ""
+   content = ""
 
-5. Для просьбы показать помощь:
+5. Если пользователь просит показать помощь:
    action = "HELP"
+   query = ""
+   filename = ""
+   content = ""
 
-6. Для завершения программы:
+6. Если пользователь хочет завершить работу программы:
    action = "EXIT"
+   query = ""
+   filename = ""
+   content = ""
 
-7. Если намерение непонятно:
-   action = "UNKNOWN"
+7. Если пользователь просит создать текстовый файл:
+   action = "CREATE_FILE"
+   filename = имя файла, которое указал пользователь
+   content = текст, который нужно записать в файл
+   query = ""
 
-Пример:
+Если пользователь не указал расширение файла, добавь .txt.
+
+Пример 1:
 
 Пользователь:
 найди в интернете Audi Q3 Sportback 2026
@@ -58,8 +83,42 @@ UNKNOWN
 Ответ:
 {{
     "action": "SEARCH_WEB",
-    "query": "Audi Q3 Sportback 2026"
+    "query": "Audi Q3 Sportback 2026",
+    "filename": "",
+    "content": ""
 }}
+
+Пример 2:
+
+Пользователь:
+создай файл заметка.txt и напиши туда купить продукты
+
+Ответ:
+{{
+    "action": "CREATE_FILE",
+    "query": "",
+    "filename": "заметка.txt",
+    "content": "купить продукты"
+}}
+
+Пример 3:
+
+Пользователь:
+создай файл идеи и напиши туда разработать Batka AI
+
+Ответ:
+{{
+    "action": "CREATE_FILE",
+    "query": "",
+    "filename": "идеи.txt",
+    "content": "разработать Batka AI"
+}}
+
+8. Если намерение пользователя непонятно:
+   action = "UNKNOWN"
+   query = ""
+   filename = ""
+   content = ""
 
 Команда пользователя:
 {command}
@@ -80,11 +139,12 @@ UNKNOWN
 
     data = response.json()
 
-    
+    raw_result = data.get("response") or data.get("thinking", "")
 
-    result = json.loads(data["thinking"])
+    result = json.loads(raw_result)
 
     return result
+
 
 if __name__ == "__main__":
     test_command = input("Тестовая команда: ")
@@ -92,4 +152,6 @@ if __name__ == "__main__":
 
     print("Результат:", result)
     print("Действие:", result["action"])
-    print("Запрос:", result["query"])
+    print("Запрос:", result.get("query", ""))
+    print("Имя файла:", result.get("filename", ""))
+    print("Содержимое:", result.get("content", ""))

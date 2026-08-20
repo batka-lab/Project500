@@ -1,4 +1,4 @@
-from actions import open_notepad, open_browser, search_web
+from actions import open_notepad, open_browser, search_web, create_file
 from brain import understand_command
 
 print("Batka AI запущен!")
@@ -10,6 +10,8 @@ while True:
 
     action = intent["action"]
     query = intent.get("query", "")
+    filename = intent.get("filename", "")
+    content = intent.get("content", "")
 
     if action == "HELP":
         print("Доступные команды:")
@@ -17,6 +19,7 @@ while True:
         print("- открыть блокнот")
         print("- открыть браузер")
         print("- найти что-нибудь в интернете")
+        print("- создать текстовый файл")
         print("- привет")
         print("- выйти")
 
@@ -28,6 +31,9 @@ while True:
 
     elif action == "SEARCH_WEB":
         search_web(query)
+
+    elif action == "CREATE_FILE":
+        create_file(filename, content)
 
     elif action == "HELLO":
         print("Привет! Batka AI на связи.")
