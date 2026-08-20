@@ -1,5 +1,6 @@
 import subprocess
 import webbrowser
+import os
 from pathlib import Path
 from urllib.parse import quote_plus
 
@@ -51,21 +52,135 @@ def create_file(filename, content):
         print(f"Ошибка при создании файла: {e}")
 
 
+def find_start_menu_app(app_name):
+    app_name = app_name.lower()
+
+    start_menu_paths = [
+        Path(os.environ["APPDATA"]) /
+        "Microsoft/Windows/Start Menu/Programs",
+
+        Path(os.environ["PROGRAMDATA"]) /
+        "Microsoft/Windows/Start Menu/Programs"
+    ]
+
+    for start_menu in start_menu_paths:
+        if not start_menu.exists():
+            continue
+
+        for shortcut in start_menu.rglob("*.lnk"):
+            shortcut_name = shortcut.stem.lower()
+
+            if app_name in shortcut_name:
+                return shortcut
+
+    return None
+
+
 def open_app(app):
-    apps = {
+    system_apps = {
         "notepad": "notepad.exe",
         "calculator": "calc.exe",
         "paint": "mspaint.exe",
         "explorer": "explorer.exe"
     }
 
-    if app not in apps:
-        print(f"Программа пока не поддерживается: {app}")
-        return
-
     try:
-        subprocess.Popen([apps[app]])
-        print(f"Программа запущена: {app}")
+        if app in system_apps:
+            subprocess.Popen([system_apps[app]])
+            print(f"Программа запущена: {app}")
+            return
+
+        shortcut = find_start_menu_app(app)
+
+        if shortcut:
+            os.startfile(shortcut)
+            print(f"Программа запущена: {shortcut.stem}")
+            return
+
+        print(f"Не удалось найти программу: {app}")
 
     except Exception as e:
         print(f"Ошибка при запуске программы {app}: {e}")
+
+
+def get_folder_path(folder):
+    folders = {
+        "desktop": Path.home() / "Desktop",
+        "downloads": Path.home() / "Downloads",
+        "documents": Path.home() / "Documents",
+        "pictures": Path.home() / "Pictures",
+        "music": Path.home() / "Music",
+        "videos": Path.home() / "Videos"
+    }
+
+    return folders.get(folder)
+
+
+def open_folder(folder):
+    try:
+        folder_path = get_folder_path(folder)
+
+        if not folder_path:
+            print(f"Неизвестная папка: {folder}")
+            return
+
+        if not folder_path.exists():
+            print(f"Папка не найдена: {folder_path}")
+            return
+
+        os.startfile(folder_path)
+        print(f"Папка открыта: {folder_path}")
+
+    except Exception as e:
+        print(f"Ошибка при открытии папки: {e}")
+
+
+def create_folder(folder, folder_name):
+    try:
+        base_path = get_folder_path(folder)
+
+        if not base_path:
+            print(f"Неизвестное место: {folder}")
+            return
+
+        new_folder = base_path / folder_name
+
+        new_folder.mkdir(
+            parents=True,
+            exist_ok=True
+        )
+
+        print(f"Папка создана: {new_folder}")
+
+    except Exception as e:
+        print(f"Ошибка при создании папки: {e}")
+
+
+def list_files(folder):
+    try:
+        folder_path = get_folder_path(folder)
+
+        if not folder_path:
+            print(f"Неизвестная папка: {folder}")
+            return
+
+        if not folder_path.exists():
+            print(f"Папка не найдена: {folder_path}")
+            return
+
+        items = list(folder_path.iterdir())
+
+        if not items:
+            print("Папка пустая.")
+            return
+
+        print(f"Содержимое папки {folder_path}:")
+
+        for item in items:
+            if item.is_dir():
+                print(f"[ПАПКА] {item.name}")
+            else:
+                print(f"[ФАЙЛ]  {item.name}")
+
+    except Exception as e:
+        print(f"Ошибка при чтении папки: {e}")

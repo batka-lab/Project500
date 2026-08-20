@@ -1,13 +1,17 @@
 from actions import (
-    open_notepad,
     open_browser,
     search_web,
     create_file,
-    open_app
+    open_app,
+    open_folder,
+    create_folder,
+    list_files
 )
 from brain import understand_command
 
+
 print("Batka AI запущен!")
+
 
 while True:
     command = input("Что нужно сделать? ").strip().lower()
@@ -19,16 +23,18 @@ while True:
     filename = intent.get("filename", "")
     content = intent.get("content", "")
     app = intent.get("app", "")
+    folder = intent.get("folder", "")
+    folder_name = intent.get("folder_name", "")
 
     if action == "HELP":
         print("Доступные команды:")
-        print("- открыть блокнот")
-        print("- открыть калькулятор")
-        print("- открыть Paint")
-        print("- открыть проводник")
+        print("- открыть программу")
         print("- открыть браузер")
         print("- найти что-нибудь в интернете")
         print("- создать текстовый файл")
+        print("- открыть папку")
+        print("- создать папку")
+        print("- показать файлы в папке")
         print("- привет")
         print("- выйти")
 
@@ -43,6 +49,15 @@ while True:
 
     elif action == "CREATE_FILE":
         create_file(filename, content)
+
+    elif action == "OPEN_FOLDER":
+        open_folder(folder)
+
+    elif action == "CREATE_FOLDER":
+        create_folder(folder, folder_name)
+
+    elif action == "LIST_FILES":
+        list_files(folder)
 
     elif action == "HELLO":
         print("Привет! Batka AI на связи.")
