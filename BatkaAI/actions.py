@@ -3,6 +3,7 @@ import webbrowser
 import os
 from pathlib import Path
 from urllib.parse import quote_plus
+from docx import Document
 
 
 def open_notepad():
@@ -56,11 +57,11 @@ def find_start_menu_app(app_name):
     app_name = app_name.lower()
 
     start_menu_paths = [
-        Path(os.environ["APPDATA"]) /
-        "Microsoft/Windows/Start Menu/Programs",
+        Path(os.environ["APPDATA"])
+        / "Microsoft/Windows/Start Menu/Programs",
 
-        Path(os.environ["PROGRAMDATA"]) /
-        "Microsoft/Windows/Start Menu/Programs"
+        Path(os.environ["PROGRAMDATA"])
+        / "Microsoft/Windows/Start Menu/Programs"
     ]
 
     for start_menu in start_menu_paths:
@@ -209,9 +210,6 @@ def find_file(filename):
 
                 if filename_lower in item.name.lower():
                     matches.append(item)
-
-        if not matches:
-            return []
 
         return matches
 
@@ -368,3 +366,27 @@ def open_latest_file(folder, extension):
 
     except Exception as e:
         print(f"Ошибка при открытии последнего файла: {e}")
+
+
+def create_word(filename, content):
+    try:
+        desktop = Path.home() / "Desktop"
+
+        if not filename.lower().endswith(".docx"):
+            filename += ".docx"
+
+        file_path = desktop / filename
+
+        document = Document()
+
+        if content:
+            document.add_paragraph(content)
+
+        document.save(file_path)
+
+        print(f"Документ Word создан: {file_path}")
+
+        os.startfile(file_path)
+
+    except Exception as e:
+        print(f"Ошибка при создании Word-документа: {e}")
