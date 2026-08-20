@@ -1,17 +1,39 @@
+import requests
+
+
 def understand_command(command):
-    if "блокнот" in command:
-        return "OPEN_NOTEPAD"
+    prompt = f"""
+Ты — мозг локального помощника Batka AI.
 
-    if "браузер" in command:
-        return "OPEN_BROWSER"
+Определи намерение пользователя.
 
-    if command == "привет":
-        return "HELLO"
+Разрешенные ответы:
+OPEN_NOTEPAD
+OPEN_BROWSER
+HELLO
+HELP
+EXIT
+UNKNOWN
 
-    if command == "помощь":
-        return "HELP"
+Верни ТОЛЬКО один из этих вариантов.
+Никаких объяснений.
 
-    if command == "выйти":
-        return "EXIT"
+Команда пользователя:
+{command}
+"""
 
-    return "UNKNOWN"
+    response = requests.post(
+        "http://localhost:11434/api/generate",
+        json={
+            "model": "qwen3:4b",
+            "prompt": prompt,
+            "stream": False
+        },
+        timeout=60
+    )
+
+    response.raise_for_status()
+
+    data = response.json()
+
+    return data["response"].strip()
