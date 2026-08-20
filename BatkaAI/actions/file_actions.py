@@ -1,36 +1,11 @@
 import subprocess
-import webbrowser
 import os
 from pathlib import Path
-from urllib.parse import quote_plus
-from docx import Document
 
-
-def open_notepad():
-    try:
-        subprocess.Popen(["notepad.exe"])
-        print("Блокнот успешно открыт.")
-    except Exception as e:
-        print(f"Ошибка при открытии блокнота: {e}")
-
-
-def open_browser():
-    try:
-        subprocess.Popen(
-            ["cmd", "/c", "start", "https://www.google.com"]
-        )
-        print("Браузер успешно открыт.")
-    except Exception as e:
-        print(f"Ошибка при открытии браузера: {e}")
-
-
-def search_web(query):
-    try:
-        url = "https://www.google.com/search?q=" + quote_plus(query)
-        webbrowser.open(url)
-        print(f"Ищу в интернете: {query}")
-    except Exception as e:
-        print(f"Ошибка при поиске: {e}")
+from BatkaAI.services.paths import (
+    get_folder_path,
+    get_search_locations
+)
 
 
 def create_file(filename, content):
@@ -51,89 +26,6 @@ def create_file(filename, content):
 
     except Exception as e:
         print(f"Ошибка при создании файла: {e}")
-
-
-def find_start_menu_app(app_name):
-    app_name = app_name.lower()
-
-    start_menu_paths = [
-        Path(os.environ["APPDATA"])
-        / "Microsoft/Windows/Start Menu/Programs",
-
-        Path(os.environ["PROGRAMDATA"])
-        / "Microsoft/Windows/Start Menu/Programs"
-    ]
-
-    for start_menu in start_menu_paths:
-        if not start_menu.exists():
-            continue
-
-        for shortcut in start_menu.rglob("*.lnk"):
-            shortcut_name = shortcut.stem.lower()
-
-            if app_name in shortcut_name:
-                return shortcut
-
-    return None
-
-
-def open_app(app):
-    system_apps = {
-        "notepad": "notepad.exe",
-        "calculator": "calc.exe",
-        "paint": "mspaint.exe",
-        "explorer": "explorer.exe"
-    }
-
-    try:
-        if app in system_apps:
-            subprocess.Popen([system_apps[app]])
-            print(f"Программа запущена: {app}")
-            return
-
-        shortcut = find_start_menu_app(app)
-
-        if shortcut:
-            os.startfile(shortcut)
-            print(f"Программа запущена: {shortcut.stem}")
-            return
-
-        print(f"Не удалось найти программу: {app}")
-
-    except Exception as e:
-        print(f"Ошибка при запуске программы {app}: {e}")
-
-
-def get_folder_path(folder):
-    folders = {
-        "desktop": Path.home() / "Desktop",
-        "downloads": Path.home() / "Downloads",
-        "documents": Path.home() / "Documents",
-        "pictures": Path.home() / "Pictures",
-        "music": Path.home() / "Music",
-        "videos": Path.home() / "Videos"
-    }
-
-    return folders.get(folder)
-
-
-def open_folder(folder):
-    try:
-        folder_path = get_folder_path(folder)
-
-        if not folder_path:
-            print(f"Неизвестная папка: {folder}")
-            return
-
-        if not folder_path.exists():
-            print(f"Папка не найдена: {folder_path}")
-            return
-
-        os.startfile(folder_path)
-        print(f"Папка открыта: {folder_path}")
-
-    except Exception as e:
-        print(f"Ошибка при открытии папки: {e}")
 
 
 def create_folder(folder, folder_name):
@@ -187,15 +79,12 @@ def list_files(folder):
         print(f"Ошибка при чтении папки: {e}")
 
 
-def get_search_locations():
-    return [
-        Path.home() / "Desktop",
-        Path.home() / "Downloads",
-        Path.home() / "Documents"
-    ]
-
-
 def find_file(filename):
+    if not filename or not filename.strip():
+        print("Не указано имя файла для поиска.")
+        return []
+
+    filename = filename.strip()
     filename_lower = filename.lower()
     matches = []
 
@@ -208,15 +97,14 @@ def find_file(filename):
                 if not item.is_file():
                     continue
 
-                # Не берем временные файлы Microsoft Office
+                # Игнорируем временные файлы Microsoft Office
                 if item.name.startswith("~$"):
                     continue
 
                 if filename_lower in item.name.lower():
                     matches.append(item)
 
-        # Если существует точное совпадение имени,
-        # ставим его первым
+        # Точное совпадение имени ставим первым
         matches.sort(
             key=lambda item: (
                 item.name.lower() != filename_lower,
@@ -352,12 +240,17 @@ def open_latest_file(folder, extension):
             print(f"Папка не найдена: {folder_path}")
             return
 
+        if not extension or not extension.strip():
+            print("Не указано расширение файла.")
+            return
+
         extension = extension.lower().lstrip(".")
 
         files = [
             item
             for item in folder_path.iterdir()
             if item.is_file()
+            and not item.name.startswith("~$")
             and item.suffix.lower() == f".{extension}"
         ]
 
@@ -379,93 +272,3 @@ def open_latest_file(folder, extension):
 
     except Exception as e:
         print(f"Ошибка при открытии последнего файла: {e}")
-
-
-def create_word(filename, content):
-    try:
-        desktop = Path.home() / "Desktop"
-
-        if not filename.lower().endswith(".docx"):
-            filename += ".docx"
-
-        file_path = desktop / filename
-
-        document = Document()
-
-        if content:
-            document.add_paragraph(content)
-
-        document.save(file_path)
-
-        print(f"Документ Word создан: {file_path}")
-
-        os.startfile(file_path)
-
-    except Exception as e:
-        print(f"Ошибка при создании Word-документа: {e}")
-
-
-def read_word(filename):
-    try:
-        matches = find_file(filename)
-
-        if not matches:
-            print(f"Word-документ не найден: {filename}")
-            return
-
-        file_path = matches[0]
-
-        if file_path.suffix.lower() != ".docx":
-            print(f"Это не Word-документ: {file_path}")
-            return
-
-        document = Document(file_path)
-
-        paragraphs = [
-            paragraph.text
-            for paragraph in document.paragraphs
-            if paragraph.text.strip()
-        ]
-
-        if not paragraphs:
-            print("Документ пустой.")
-            return
-
-        print(f"Содержимое Word-документа {file_path}:")
-        print("-" * 50)
-
-        for paragraph in paragraphs:
-            print(paragraph)
-
-        print("-" * 50)
-
-    except Exception as e:
-        print(f"Ошибка при чтении Word-документа: {e}")
-
-
-def append_word(filename, content):
-    try:
-        matches = find_file(filename)
-
-        if not matches:
-            print(f"Word-документ не найден: {filename}")
-            return
-
-        file_path = matches[0]
-
-        if file_path.suffix.lower() != ".docx":
-            print(f"Это не Word-документ: {file_path}")
-            return
-
-        document = Document(file_path)
-
-        document.add_paragraph(content)
-
-        document.save(file_path)
-
-        print(f"Текст добавлен в Word-документ: {file_path}")
-
-        os.startfile(file_path)
-
-    except Exception as e:
-        print(f"Ошибка при изменении Word-документа: {e}")

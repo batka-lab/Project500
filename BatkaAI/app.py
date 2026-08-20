@@ -1,4 +1,4 @@
-from actions import (
+from BatkaAI.actions import (
     open_browser,
     search_web,
     create_file,
@@ -16,8 +16,7 @@ from actions import (
     append_word
 )
 
-from brain import understand_command
-
+from BatkaAI.brain import understand_command
 
 print("Batka AI запущен!")
 
