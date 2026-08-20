@@ -1,4 +1,5 @@
 import re
+import time
 
 from BatkaAI.services.task_manager import (
     TaskManager
@@ -13,12 +14,20 @@ from BatkaAI.services.document_analyzer import (
     analyze_document_structure,
 )
 
+from BatkaAI.services.semantic_analyzer import (
+    analyze_semantics,
+)
+
 from BatkaAI.services.document_planner import (
     build_improvement_plan,
 )
 
 from BatkaAI.services.backup_service import (
     create_backup,
+)
+
+from BatkaAI.services.history_service import (
+    add_history_entry,
 )
 
 from BatkaAI.actions.excel_actions import (
@@ -28,11 +37,6 @@ from BatkaAI.actions.excel_actions import (
 from BatkaAI.actions.office_actions import (
     word_edit,
 )
-
-
-# =========================================================
-# ИМЯ ФАЙЛА
-# =========================================================
 
 
 def extract_document_filename(
@@ -59,7 +63,6 @@ def extract_document_filename(
 
     prefixes = [
         "проанализируй ",
-        "проанализировать ",
         "анализируй ",
         "улучши ",
         "исправь ",
@@ -79,9 +82,7 @@ def extract_document_filename(
     while changed:
         changed = False
 
-        lowered = (
-            filename.lower()
-        )
+        lowered = filename.lower()
 
         for prefix in prefixes:
             if lowered.startswith(
@@ -100,240 +101,216 @@ def extract_document_filename(
     return filename
 
 
-# =========================================================
-# ПЕЧАТЬ EXCEL АНАЛИЗА
-# =========================================================
+def print_semantic_analysis(
+    semantic
+):
+    if not semantic:
+        return
+
+    print()
+    print("Содержательный анализ:")
+
+    purpose = semantic.get(
+        "document_purpose",
+        "Не определено"
+    )
+
+    confidence = semantic.get(
+        "confidence",
+        0
+    )
+
+    description = semantic.get(
+        "description",
+        ""
+    )
+
+    print(
+        f"  Тип/назначение: "
+        f"{purpose}"
+    )
+
+    try:
+        confidence_percent = (
+            float(confidence)
+            * 100
+        )
+
+        print(
+            f"  Уверенность: "
+            f"{confidence_percent:.0f}%"
+        )
+
+    except Exception:
+        pass
+
+    if description:
+        print(
+            f"  Описание: "
+            f"{description}"
+        )
+
+    recommendations = semantic.get(
+        "semantic_recommendations",
+        []
+    )
+
+    if recommendations:
+        print()
+        print(
+            "  Рекомендации по содержанию:"
+        )
+
+        for index, recommendation in enumerate(
+            recommendations,
+            start=1
+        ):
+            print(
+                f"    {index}. "
+                f"{recommendation}"
+            )
 
 
-def print_excel_analysis(
-    analysis
+def print_analysis(
+    analysis,
+    semantic=None
 ):
     print()
-    print("=" * 60)
-    print("АНАЛИЗ EXCEL")
-    print("=" * 60)
+    print("=" * 65)
+    print(
+        f"АНАЛИЗ "
+        f"{analysis['document_type'].upper()}"
+    )
+    print("=" * 65)
 
     print(
         f"Файл: "
         f"{analysis['filename']}"
     )
 
-    print(
-        f"Листов: "
-        f"{analysis['sheet_count']}"
-    )
+    if (
+        analysis[
+            "document_type"
+        ]
+        == "Excel"
+    ):
+        print(
+            f"Листов: "
+            f"{analysis['sheet_count']}"
+        )
 
-    print(
-        f"Строк суммарно: "
-        f"{analysis['total_rows']}"
-    )
+        print(
+            f"Строк: "
+            f"{analysis['total_rows']}"
+        )
 
-    print(
-        f"Столбцов суммарно: "
-        f"{analysis['total_columns']}"
-    )
+        print(
+            f"Столбцов: "
+            f"{analysis['total_columns']}"
+        )
 
-    print(
-        f"Формул: "
-        f"{analysis['formula_count']}"
-    )
+        print(
+            f"Формул: "
+            f"{analysis['formula_count']}"
+        )
 
-    print(
-        f"Строк-дубликатов: "
-        f"{analysis['duplicate_rows']}"
-    )
+        print(
+            f"Дубликатов: "
+            f"{analysis['duplicate_rows']}"
+        )
 
-    print(
-        f"Чисел как текст: "
-        f"{analysis['text_number_cells']}"
-    )
-
-    print()
-
-    print("Листы:")
-
-    for sheet in analysis[
-        "sheets"
-    ]:
         print()
 
-        print(
-            f"• {sheet['name']}"
-        )
-
-        print(
-            f"  Размер: "
-            f"{sheet['max_row']} × "
-            f"{sheet['max_column']}"
-        )
-
-        headers = [
-            str(header)
-            for header
-            in sheet[
-                "headers"
-            ]
-            if header is not None
-        ]
-
-        if headers:
+        for sheet in analysis.get(
+            "sheets",
+            []
+        ):
             print(
-                "  Заголовки: "
-                + ", ".join(
-                    headers[:20]
+                f"• {sheet['name']}: "
+                f"{sheet['max_row']} × "
+                f"{sheet['max_column']}"
+            )
+
+            headers = [
+                str(item)
+                for item in sheet.get(
+                    "headers",
+                    []
                 )
-            )
+                if item is not None
+            ]
 
-        if sheet[
-            "formula_count"
-        ]:
-            print(
-                f"  Формул: "
-                f"{sheet['formula_count']}"
-            )
-
-    print()
-
-    if analysis[
-        "warnings"
-    ]:
-        print(
-            "Обнаруженные проблемы:"
-        )
-
-        for warning in analysis[
-            "warnings"
-        ]:
-            print(
-                f"  ! {warning}"
-            )
+            if headers:
+                print(
+                    "  Заголовки: "
+                    + ", ".join(
+                        headers[:15]
+                    )
+                )
 
     else:
         print(
-            "Критических проблем "
-            "не обнаружено."
+            f"Абзацев: "
+            f"{analysis['paragraph_count']}"
         )
 
-    print()
-
-    if analysis[
-        "recommendations"
-    ]:
         print(
-            "Рекомендации:"
+            f"Заголовков: "
+            f"{analysis['heading_count']}"
+        )
+
+        print(
+            f"Таблиц: "
+            f"{analysis['table_count']}"
+        )
+
+        print(
+            f"Изображений: "
+            f"{analysis['image_count']}"
+        )
+
+    warnings = analysis.get(
+        "warnings",
+        []
+    )
+
+    if warnings:
+        print()
+        print("Проблемы:")
+
+        for item in warnings:
+            print(
+                f"  ! {item}"
+            )
+
+    recommendations = analysis.get(
+        "recommendations",
+        []
+    )
+
+    if recommendations:
+        print()
+        print(
+            "Технические рекомендации:"
         )
 
         for index, item in enumerate(
-            analysis[
-                "recommendations"
-            ],
-            start=1,
+            recommendations,
+            start=1
         ):
             print(
                 f"  {index}. {item}"
             )
 
-    print("=" * 60)
-
-
-# =========================================================
-# ПЕЧАТЬ WORD АНАЛИЗА
-# =========================================================
-
-
-def print_word_analysis(
-    analysis
-):
-    print()
-    print("=" * 60)
-    print("АНАЛИЗ WORD")
-    print("=" * 60)
-
-    print(
-        f"Файл: "
-        f"{analysis['filename']}"
+    print_semantic_analysis(
+        semantic
     )
 
-    print(
-        f"Абзацев: "
-        f"{analysis['paragraph_count']}"
-    )
-
-    print(
-        f"Заголовков: "
-        f"{analysis['heading_count']}"
-    )
-
-    print(
-        f"Таблиц: "
-        f"{analysis['table_count']}"
-    )
-
-    print(
-        f"Изображений: "
-        f"{analysis['image_count']}"
-    )
-
-    if analysis[
-        "headings"
-    ]:
-        print()
-        print(
-            "Структура заголовков:"
-        )
-
-        for heading in analysis[
-            "headings"
-        ]:
-            print(
-                f"  • "
-                f"{heading['text']}"
-            )
-
-    print()
-
-    if analysis[
-        "warnings"
-    ]:
-        print(
-            "Обнаруженные проблемы:"
-        )
-
-        for warning in analysis[
-            "warnings"
-        ]:
-            print(
-                f"  ! {warning}"
-            )
-
-    if analysis[
-        "recommendations"
-    ]:
-        print()
-        print(
-            "Рекомендации:"
-        )
-
-        for index, item in enumerate(
-            analysis[
-                "recommendations"
-            ],
-            start=1,
-        ):
-            print(
-                f"  {index}. {item}"
-            )
-
-    print("=" * 60)
+    print("=" * 65)
 
 
-# =========================================================
-# БАЗОВЫЙ АНАЛИЗ
-# =========================================================
-
-
-def analyze_document(
-    filename,
+def full_analyze_document(
+    filename
 ):
     file_path = find_document(
         filename
@@ -342,130 +319,60 @@ def analyze_document(
     if not file_path:
         return None
 
-    document = read_document(
+    raw_document = read_document(
         filename
     )
 
-    if not document:
+    if not raw_document:
         return None
 
-    analysis = (
+    structural = (
         analyze_document_structure(
-            document
+            raw_document
         )
     )
 
-    return analysis
+    if not structural:
+        return None
+
+    semantic = analyze_semantics(
+        raw_document,
+        structural
+    )
+
+    return {
+        "file_path": str(
+            file_path
+        ),
+
+        "raw_document": raw_document,
+
+        "analysis": structural,
+
+        "semantic": semantic
+    }
 
 
-# =========================================================
-# КОМАНДА АНАЛИЗА
-# =========================================================
+def analyze_document(
+    filename
+):
+    result = full_analyze_document(
+        filename
+    )
+
+    if not result:
+        return None
+
+    return result[
+        "analysis"
+    ]
 
 
 def analyze_document_command(
     command
 ):
-    filename = extract_document_filename(
-        command
-    )
+    started = time.time()
 
-    if not filename:
-        print(
-            "Не удалось определить "
-            "имя Word или Excel файла."
-        )
-
-        return False
-
-    task = TaskManager(
-        f"Анализ документа {filename}"
-    )
-
-    step_find = task.add_step(
-        f"Ищу {filename}"
-    )
-
-    step_read = task.add_step(
-        "Читаю структуру документа"
-    )
-
-    step_analyze = task.add_step(
-        "Анализирую содержимое"
-    )
-
-    step_report = task.add_step(
-        "Формирую отчёт"
-    )
-
-    task.start()
-
-    file_path = task.run_step(
-        step_find,
-        find_document,
-        filename,
-    )
-
-    if not file_path:
-        task.finish()
-        return False
-
-    document = task.run_step(
-        step_read,
-        read_document,
-        filename,
-    )
-
-    if not document:
-        task.finish()
-        return False
-
-    analysis = task.run_step(
-        step_analyze,
-        analyze_document_structure,
-        document,
-    )
-
-    if not analysis:
-        task.finish()
-        return False
-
-    def report():
-        if (
-            analysis[
-                "document_type"
-            ]
-            == "Excel"
-        ):
-            print_excel_analysis(
-                analysis
-            )
-
-        else:
-            print_word_analysis(
-                analysis
-            )
-
-        return True
-
-    task.run_step(
-        step_report,
-        report,
-    )
-
-    task.finish()
-
-    return analysis
-
-
-# =========================================================
-# ПОДГОТОВКА ПЛАНА УЛУЧШЕНИЯ
-# =========================================================
-
-
-def prepare_improvement_plan(
-    command
-):
     filename = extract_document_filename(
         command
     )
@@ -476,6 +383,131 @@ def prepare_improvement_plan(
             "имя документа."
         )
 
+        return False
+
+    task = TaskManager(
+        f"Анализ документа {filename}"
+    )
+
+    steps = [
+        task.add_step(
+            f"Ищу {filename}"
+        ),
+
+        task.add_step(
+            "Читаю структуру"
+        ),
+
+        task.add_step(
+            "Выполняю технический анализ"
+        ),
+
+        task.add_step(
+            "Определяю назначение документа"
+        ),
+
+        task.add_step(
+            "Формирую отчёт"
+        )
+    ]
+
+    task.start()
+
+    file_path = task.run_step(
+        steps[0],
+        find_document,
+        filename
+    )
+
+    if not file_path:
+        task.finish()
+
+        add_history_entry(
+            command,
+            "error",
+            "analysis",
+            filename,
+            time.time() - started
+        )
+
+        return False
+
+    raw_document = task.run_step(
+        steps[1],
+        read_document,
+        filename
+    )
+
+    if not raw_document:
+        task.finish()
+
+        return False
+
+    analysis = task.run_step(
+        steps[2],
+        analyze_document_structure,
+        raw_document
+    )
+
+    if not analysis:
+        task.finish()
+
+        return False
+
+    semantic = task.run_step(
+        steps[3],
+        analyze_semantics,
+        raw_document,
+        analysis
+    )
+
+    def report():
+        print_analysis(
+            analysis,
+            semantic
+        )
+
+        return True
+
+    task.run_step(
+        steps[4],
+        report
+    )
+
+    task.finish()
+
+    duration = (
+        time.time()
+        - started
+    )
+
+    add_history_entry(
+        command,
+        "success",
+        "analysis",
+        filename,
+        duration,
+        details={
+            "semantic": semantic
+        }
+    )
+
+    return {
+        "analysis": analysis,
+        "semantic": semantic
+    }
+
+
+def prepare_improvement_plan(
+    command
+):
+    started = time.time()
+
+    filename = extract_document_filename(
+        command
+    )
+
+    if not filename:
         return None
 
     task = TaskManager(
@@ -483,63 +515,73 @@ def prepare_improvement_plan(
         f"{filename}"
     )
 
-    step_find = task.add_step(
-        f"Ищу {filename}"
-    )
+    steps = [
+        task.add_step(
+            f"Ищу {filename}"
+        ),
 
-    step_read = task.add_step(
-        "Читаю документ"
-    )
+        task.add_step(
+            "Читаю документ"
+        ),
 
-    step_analyze = task.add_step(
-        "Анализирую структуру"
-    )
+        task.add_step(
+            "Анализирую структуру"
+        ),
 
-    step_plan = task.add_step(
-        "Формирую безопасный план"
-    )
+        task.add_step(
+            "Определяю назначение документа"
+        ),
+
+        task.add_step(
+            "Формирую безопасный план"
+        )
+    ]
 
     task.start()
 
     file_path = task.run_step(
-        step_find,
+        steps[0],
         find_document,
-        filename,
+        filename
     )
 
     if not file_path:
         task.finish()
         return None
 
-    document = task.run_step(
-        step_read,
+    raw_document = task.run_step(
+        steps[1],
         read_document,
-        filename,
+        filename
     )
 
-    if not document:
+    if not raw_document:
         task.finish()
         return None
 
     analysis = task.run_step(
-        step_analyze,
+        steps[2],
         analyze_document_structure,
-        document,
+        raw_document
     )
 
     if not analysis:
         task.finish()
         return None
 
-    plan = task.run_step(
-        step_plan,
-        build_improvement_plan,
-        analysis,
+    semantic = task.run_step(
+        steps[3],
+        analyze_semantics,
+        raw_document,
+        analysis
     )
 
-    if plan is False:
-        task.finish()
-        return None
+    plan = task.run_step(
+        steps[4],
+        build_improvement_plan,
+        analysis,
+        semantic
+    )
 
     task.finish()
 
@@ -552,76 +594,84 @@ def prepare_improvement_plan(
 
         "analysis": analysis,
 
+        "semantic": semantic,
+
         "plan": plan,
+
+        "original_command": command,
+
+        "started": started
     }
 
     print()
-    print("=" * 60)
+    print("=" * 65)
     print("ПЛАН ИЗМЕНЕНИЙ")
-    print("=" * 60)
+    print("=" * 65)
+
+    print_semantic_analysis(
+        semantic
+    )
+
+    print()
 
     if not plan:
         print(
-            "Batka не нашёл безопасных "
-            "автоматических улучшений."
+            "Безопасных автоматических "
+            "изменений не найдено."
         )
 
-        print("=" * 60)
+    else:
+        for index, item in enumerate(
+            plan,
+            start=1
+        ):
+            print(
+                f"{index}. "
+                f"{item['title']}"
+            )
 
-        return result
-
-    for index, action in enumerate(
-        plan,
-        start=1,
-    ):
+        print()
         print(
-            f"{index}. "
-            f"{action['title']}"
+            "✓ Содержимое данных "
+            "удаляться не будет."
         )
 
-    print()
-    print(
-        "Данные удаляться не будут."
-    )
+        print(
+            "✓ Перед изменением будет "
+            "создан backup."
+        )
 
-    print(
-        "Перед изменениями будет создана "
-        "резервная копия."
-    )
+        print(
+            "✓ После изменения документ "
+            "будет повторно проверен."
+        )
 
-    print("=" * 60)
+    print("=" * 65)
 
-    print()
-    print(
-        "Выполнить этот план? "
-        "да / нет"
-    )
+    if plan:
+        print()
+        print(
+            "Выполнить план? да / нет"
+        )
 
     return result
-
-
-# =========================================================
-# ВЫПОЛНЕНИЕ ПЛАНА
-# =========================================================
 
 
 def execute_improvement_plan(
     pending_plan
 ):
     if not pending_plan:
-        print(
-            "Нет ожидающего плана."
-        )
-
         return False
 
-    filename = pending_plan.get(
-        "filename"
-    )
+    started = time.time()
 
-    file_path = pending_plan.get(
+    filename = pending_plan[
+        "filename"
+    ]
+
+    file_path = pending_plan[
         "file_path"
-    )
+    ]
 
     plan = pending_plan.get(
         "plan",
@@ -629,10 +679,6 @@ def execute_improvement_plan(
     )
 
     if not plan:
-        print(
-            "В плане нет действий."
-        )
-
         return False
 
     task = TaskManager(
@@ -644,19 +690,15 @@ def execute_improvement_plan(
         "Создаю резервную копию"
     )
 
-    action_steps = []
-
-    for action in plan:
-        action_steps.append(
-            task.add_step(
-                action[
-                    "title"
-                ]
-            )
+    action_steps = [
+        task.add_step(
+            item["title"]
         )
+        for item in plan
+    ]
 
     verify_step = task.add_step(
-        "Проверяю результат"
+        "Повторно анализирую документ"
     )
 
     task.start()
@@ -664,109 +706,120 @@ def execute_improvement_plan(
     backup_path = task.run_step(
         backup_step,
         create_backup,
-        file_path,
+        file_path
     )
 
     if not backup_path:
         task.finish()
         return False
 
-    for step, action in zip(
+    for step, item in zip(
         action_steps,
-        plan,
+        plan
     ):
+        engine = item.get(
+            "engine"
+        )
+
+        operation = item.get(
+            "operation"
+        )
+
+        data = item.get(
+            "data",
+            {}
+        )
 
         def execute(
-            action=action
+            engine=engine,
+            operation=operation,
+            data=data
         ):
-            engine = action.get(
-                "engine"
-            )
-
-            operation = action.get(
-                "operation"
-            )
-
-            data = action.get(
-                "data",
-                {}
-            )
-
             if engine == "excel":
-                result = excel_edit(
-                    filename,
-                    operation,
-                    data,
-                )
-
                 return (
-                    result is not None
+                    excel_edit(
+                        filename,
+                        operation,
+                        data
+                    )
+                    is not None
                 )
 
             if engine == "word":
-                result = word_edit(
-                    filename,
-                    operation,
-                    data,
-                )
-
                 return (
-                    result is not None
+                    word_edit(
+                        filename,
+                        operation,
+                        data
+                    )
+                    is not None
                 )
 
             return False
 
         result = task.run_step(
             step,
-            execute,
+            execute
         )
 
         if result is False:
-            print()
-            print(
-                "Выполнение остановлено."
-            )
+            task.finish()
 
-            print(
-                f"Оригинальная версия "
-                f"сохранена здесь:"
-            )
-
-            print(
+            add_history_entry(
+                pending_plan.get(
+                    "original_command",
+                    ""
+                ),
+                "error",
+                "safe_edit",
+                filename,
+                time.time() - started,
                 backup_path
             )
 
-            task.finish()
-
             return False
 
-    # =============================================
-    # ПОВТОРНАЯ ПРОВЕРКА
-    # =============================================
-
-    def verify():
-        result = analyze_document(
-            filename
-        )
-
-        if not result:
-            return False
-
-        return True
-
-    result = task.run_step(
+    verified = task.run_step(
         verify_step,
-        verify,
+        full_analyze_document,
+        filename
     )
 
     task.finish()
 
-    if result is False:
-        return False
+    duration = (
+        time.time()
+        - started
+    )
 
+    add_history_entry(
+        pending_plan.get(
+            "original_command",
+            ""
+        ),
+        "success",
+        "safe_edit",
+        filename,
+        duration,
+        backup_path,
+        details={
+            "actions": [
+                item["title"]
+                for item in plan
+            ]
+        }
+    )
+
+    print()
     print(
         f"Резервная копия: "
         f"{backup_path}"
     )
+
+    if verified:
+        print(
+            "✓ Повторная проверка "
+            "документа завершена."
+        )
 
     return True

@@ -26,10 +26,12 @@ from BatkaAI.services.task_manager import (
     TaskManager,
 )
 
+from BatkaAI.services.history_service import (
+    show_history,
+    add_history_entry,
+)
 
-# =========================================================
-# ПОИСКОВЫЙ ЗАПРОС ФАЙЛА
-# =========================================================
+import time
 
 
 def get_file_search_term(
@@ -38,7 +40,7 @@ def get_file_search_term(
     filename = str(
         action_data.get(
             "filename",
-            "",
+            ""
         )
         or ""
     ).strip()
@@ -46,20 +48,15 @@ def get_file_search_term(
     query = str(
         action_data.get(
             "query",
-            "",
+            ""
         )
         or ""
     ).strip()
 
-    if filename:
-        return filename
-
-    return query
-
-
-# =========================================================
-# ОПИСАНИЕ TASK
-# =========================================================
+    return (
+        filename
+        or query
+    )
 
 
 def describe_action(
@@ -67,45 +64,42 @@ def describe_action(
 ):
     action = action_data.get(
         "action",
-        "",
+        ""
     )
 
     filename = action_data.get(
         "filename",
-        "",
+        ""
     )
 
     operation = action_data.get(
         "operation",
-        "",
-    )
-
-    query = action_data.get(
-        "query",
-        "",
-    )
-
-    app = action_data.get(
-        "app",
-        "",
+        ""
     )
 
     if action == "FIND_FILE":
-        search_term = (
-            get_file_search_term(
-                action_data
-            )
-        )
-
         return (
             f"Ищу файл "
-            f"{search_term}"
+            f"{get_file_search_term(action_data)}"
+        )
+
+    if action == "WORD_EDIT":
+        return (
+            f"Word: "
+            f"{operation} "
+            f"({filename})"
+        )
+
+    if action == "EXCEL_EDIT":
+        return (
+            f"Excel: "
+            f"{operation} "
+            f"({filename})"
         )
 
     descriptions = {
         "OPEN_APP": (
-            f"Открываю программу "
-            f"{app}"
+            "Открываю программу"
         ),
 
         "OPEN_BROWSER": (
@@ -113,8 +107,7 @@ def describe_action(
         ),
 
         "SEARCH_WEB": (
-            f"Ищу в интернете: "
-            f"{query}"
+            "Ищу информацию"
         ),
 
         "CREATE_FILE": (
@@ -137,18 +130,6 @@ def describe_action(
             f"{filename}"
         ),
 
-        "WORD_EDIT": (
-            f"Word: "
-            f"{operation} "
-            f"({filename})"
-        ),
-
-        "EXCEL_EDIT": (
-            f"Excel: "
-            f"{operation} "
-            f"({filename})"
-        ),
-
         "OPEN_FOLDER": (
             "Открываю папку"
         ),
@@ -158,32 +139,26 @@ def describe_action(
         ),
 
         "LIST_FILES": (
-            "Читаю содержимое папки"
-        ),
-
-        "HELP": (
-            "Показываю возможности"
+            "Читаю папку"
         ),
 
         "HELLO": (
             "Приветствие"
         ),
 
+        "HELP": (
+            "Показываю возможности"
+        ),
+
         "EXIT": (
             "Завершаю работу"
-        ),
+        )
     }
 
     return descriptions.get(
         action,
-        f"Выполняю "
-        f"{action}"
+        action
     )
-
-
-# =========================================================
-# FIND
-# =========================================================
 
 
 def execute_find_file(
@@ -219,21 +194,15 @@ def execute_find_file(
         f"{len(matches)}"
     )
 
-    for index, file_path in enumerate(
+    for index, path in enumerate(
         matches,
-        start=1,
+        start=1
     ):
         print(
-            f"{index}. "
-            f"{file_path}"
+            f"{index}. {path}"
         )
 
     return True
-
-
-# =========================================================
-# ACTION
-# =========================================================
 
 
 def execute_action(
@@ -241,57 +210,30 @@ def execute_action(
 ):
     action = action_data.get(
         "action",
-        "",
-    )
-
-    query = action_data.get(
-        "query",
-        "",
+        ""
     )
 
     filename = action_data.get(
         "filename",
-        "",
-    )
-
-    content = action_data.get(
-        "content",
-        "",
-    )
-
-    app = action_data.get(
-        "app",
-        "",
-    )
-
-    folder = action_data.get(
-        "folder",
-        "",
-    )
-
-    folder_name = action_data.get(
-        "folder_name",
-        "",
-    )
-
-    extension = action_data.get(
-        "extension",
-        "",
+        ""
     )
 
     operation = action_data.get(
         "operation",
-        "",
+        ""
     )
 
     data = action_data.get(
         "data",
-        {},
+        {}
     )
 
     if action == "OPEN_APP":
         open_app(
-            app
+            action_data.get(
+                "app",
+                ""
+            )
         )
 
         return True
@@ -303,7 +245,10 @@ def execute_action(
 
     if action == "SEARCH_WEB":
         search_web(
-            query
+            action_data.get(
+                "query",
+                ""
+            )
         )
 
         return True
@@ -311,7 +256,10 @@ def execute_action(
     if action == "CREATE_FILE":
         create_file(
             filename,
-            content
+            action_data.get(
+                "content",
+                ""
+            )
         )
 
         return True
@@ -333,7 +281,10 @@ def execute_action(
     if action == "APPEND_FILE":
         append_file(
             filename,
-            content
+            action_data.get(
+                "content",
+                ""
+            )
         )
 
         return True
@@ -345,68 +296,86 @@ def execute_action(
 
     if action == "OPEN_LATEST_FILE":
         open_latest_file(
-            folder,
-            extension
+            action_data.get(
+                "folder",
+                ""
+            ),
+
+            action_data.get(
+                "extension",
+                ""
+            )
         )
 
         return True
 
     if action == "OPEN_FOLDER":
         open_folder(
-            folder
+            action_data.get(
+                "folder",
+                ""
+            )
         )
 
         return True
 
     if action == "CREATE_FOLDER":
         create_folder(
-            folder,
-            folder_name
+            action_data.get(
+                "folder",
+                ""
+            ),
+
+            action_data.get(
+                "folder_name",
+                ""
+            )
         )
 
         return True
 
     if action == "LIST_FILES":
         list_files(
-            folder
+            action_data.get(
+                "folder",
+                ""
+            )
         )
 
         return True
 
     if action == "WORD_EDIT":
-        result = word_edit(
-            filename,
-            operation,
-            data
-        )
-
         return (
-            result is not None
+            word_edit(
+                filename,
+                operation,
+                data
+            )
+            is not None
         )
 
     if action == "EXCEL_EDIT":
-        result = excel_edit(
-            filename,
-            operation,
-            data
-        )
-
         return (
-            result is not None
+            excel_edit(
+                filename,
+                operation,
+                data
+            )
+            is not None
         )
-
-    if action == "HELP":
-        print(
-            "Batka AI умеет работать "
-            "с файлами, Word, Excel "
-            "и анализировать документы."
-        )
-
-        return True
 
     if action == "HELLO":
         print(
             "Привет! Batka AI на связи."
+        )
+
+        return True
+
+    if action == "HELP":
+        print(
+            "Batka AI умеет работать "
+            "с Windows, файлами, Word, Excel "
+            "и анализировать документы."
         )
 
         return True
@@ -417,11 +386,6 @@ def execute_action(
     return False
 
 
-# =========================================================
-# ANALYSIS COMMAND
-# =========================================================
-
-
 def is_analysis_command(
     command
 ):
@@ -429,26 +393,19 @@ def is_analysis_command(
 
     return (
         (
-            ".xlsx"
-            in lowered
-            or ".docx"
-            in lowered
+            ".xlsx" in lowered
+            or ".docx" in lowered
         )
         and any(
-            phrase in lowered
-            for phrase in [
+            word in lowered
+            for word in [
                 "проанализируй",
                 "анализируй",
-                "анализ документа",
                 "посмотри структуру",
+                "анализ документа",
             ]
         )
     )
-
-
-# =========================================================
-# IMPROVE COMMAND
-# =========================================================
 
 
 def is_improvement_command(
@@ -456,46 +413,42 @@ def is_improvement_command(
 ):
     lowered = command.lower()
 
-    has_document = (
-        ".xlsx" in lowered
-        or ".docx" in lowered
-    )
-
-    improve_words = [
-        "улучши",
-        "исправь",
-        "приведи в порядок",
-        "сделай нормальным",
-        "сделай аккуратным",
-        "приведи документ в порядок",
-        "приведи excel в порядок",
-        "приведи word в порядок",
-    ]
-
     return (
-        has_document
+        (
+            ".xlsx" in lowered
+            or ".docx" in lowered
+        )
         and any(
             word in lowered
-            for word in improve_words
+            for word in [
+                "улучши",
+                "исправь",
+                "приведи в порядок",
+                "сделай аккуратным",
+                "сделай нормальным",
+            ]
         )
     )
 
 
-# =========================================================
-# NORMAL TASK
-# =========================================================
+def is_history_command(
+    command
+):
+    lowered = command.lower().strip()
+
+    return lowered in [
+        "история",
+        "покажи историю",
+        "история задач",
+        "покажи историю задач",
+    ]
 
 
-def execute_task(
+def execute_normal_task(
     command,
     actions
 ):
-    if not actions:
-        print(
-            "Не удалось понять команду."
-        )
-
-        return False
+    started = time.time()
 
     task = TaskManager(
         command
@@ -507,20 +460,19 @@ def execute_task(
                 action
             )
         )
-        for action
-        in actions
+        for action in actions
     ]
 
     task.start()
 
     for step, action in zip(
         steps,
-        actions,
+        actions
     ):
         result = task.run_step(
             step,
             execute_action,
-            action,
+            action
         )
 
         if result == "EXIT":
@@ -529,23 +481,33 @@ def execute_task(
             return "EXIT"
 
         if result is False:
-            print(
-                "Остальные действия "
-                "остановлены."
-            )
-
             task.finish()
+
+            add_history_entry(
+                command,
+                "error",
+                "general",
+                duration=(
+                    time.time()
+                    - started
+                )
+            )
 
             return False
 
     task.finish()
 
+    add_history_entry(
+        command,
+        "success",
+        "general",
+        duration=(
+            time.time()
+            - started
+        )
+    )
+
     return True
-
-
-# =========================================================
-# MAIN
-# =========================================================
 
 
 def main():
@@ -563,10 +525,12 @@ def main():
         if not command:
             continue
 
-        lowered = command.lower()
+        lowered = (
+            command.lower()
+        )
 
         # =============================================
-        # ОЖИДАЕТСЯ ПОДТВЕРЖДЕНИЕ
+        # CONFIRM PLAN
         # =============================================
 
         if pending_plan:
@@ -574,7 +538,7 @@ def main():
                 "да",
                 "давай",
                 "выполняй",
-                "выполнить",
+                "выполни",
                 "подтверждаю",
                 "ок",
                 "окей",
@@ -595,7 +559,7 @@ def main():
             ]:
                 print(
                     "План отменён. "
-                    "Файл не изменён."
+                    "Документ не изменён."
                 )
 
                 pending_plan = None
@@ -603,7 +567,20 @@ def main():
                 continue
 
         # =============================================
-        # IMPROVE
+        # HISTORY
+        # =============================================
+
+        if is_history_command(
+            command
+        ):
+            show_history(
+                20
+            )
+
+            continue
+
+        # =============================================
+        # IMPROVEMENT
         # =============================================
 
         if is_improvement_command(
@@ -618,7 +595,7 @@ def main():
             continue
 
         # =============================================
-        # ANALYZE
+        # ANALYSIS
         # =============================================
 
         if is_analysis_command(
@@ -641,7 +618,7 @@ def main():
 
         except Exception as e:
             print(
-                f"Ошибка понимания команды: "
+                f"Ошибка мозга Batka: "
                 f"{type(e).__name__}: "
                 f"{e}"
             )
@@ -653,7 +630,14 @@ def main():
             []
         )
 
-        result = execute_task(
+        if not actions:
+            print(
+                "Не удалось понять команду."
+            )
+
+            continue
+
+        result = execute_normal_task(
             command,
             actions
         )

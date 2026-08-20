@@ -1,19 +1,18 @@
 def build_excel_plan(
-    analysis
+    analysis,
+    semantic=None
 ):
     plan = []
 
-    sheets = analysis.get(
+    for sheet in analysis.get(
         "sheets",
         []
-    )
-
-    for sheet in sheets:
-        sheet_name = sheet.get(
+    ):
+        name = sheet.get(
             "name"
         )
 
-        max_row = int(
+        rows = int(
             sheet.get(
                 "max_row",
                 0
@@ -21,97 +20,69 @@ def build_excel_plan(
             or 0
         )
 
-        max_column = int(
-            sheet.get(
-                "max_column",
-                0
-            )
-            or 0
+        columns = sheet.get(
+            "columns",
+            []
         )
 
-        if (
-            max_row > 0
-            and max_column > 0
-        ):
-            # =========================================
-            # ОФОРМЛЕНИЕ ЗАГОЛОВКОВ
-            # =========================================
+        if not columns:
+            continue
 
-            last_column = (
-                sheet.get(
-                    "columns",
-                    []
-                )
+        last_letter = (
+            columns[-1]
+            .get(
+                "letter"
             )
+        )
 
-            if last_column:
-                last_letter = (
-                    last_column[-1]
-                    .get(
-                        "letter"
-                    )
-                )
+        if not last_letter:
+            continue
 
-                if last_letter:
-                    plan.append(
-                        {
-                            "title": (
-                                f"Оформить заголовки "
-                                f"на листе "
-                                f"'{sheet_name}'"
-                            ),
-
-                            "engine": "excel",
-
-                            "operation": (
-                                "format_header"
-                            ),
-
-                            "data": {
-                                "sheet_name": (
-                                    sheet_name
-                                ),
-
-                                "range": (
-                                    f"A1:"
-                                    f"{last_letter}1"
-                                )
-                            }
-                        }
-                    )
-
-            # =========================================
-            # AUTOFIT
-            # =========================================
-
+        if rows >= 1:
             plan.append(
                 {
                     "title": (
-                        f"Подобрать ширину "
-                        f"столбцов на листе "
-                        f"'{sheet_name}'"
+                        f"Оформить заголовки "
+                        f"на листе '{name}'"
                     ),
 
                     "engine": "excel",
 
                     "operation": (
-                        "autofit"
+                        "format_header"
                     ),
 
                     "data": {
-                        "sheet_name": (
-                            sheet_name
+                        "sheet_name": name,
+
+                        "range": (
+                            f"A1:"
+                            f"{last_letter}1"
                         )
                     }
                 }
             )
 
-        # =============================================
-        # FREEZE HEADER
-        # =============================================
+        plan.append(
+            {
+                "title": (
+                    f"Подобрать ширину "
+                    f"столбцов на листе "
+                    f"'{name}'"
+                ),
+
+                "engine": "excel",
+
+                "operation": "autofit",
+
+                "data": {
+                    "sheet_name": name
+                }
+            }
+        )
 
         if (
-            max_row > 5
+            rows > 5
             and not sheet.get(
                 "freeze_panes"
             )
@@ -121,7 +92,7 @@ def build_excel_plan(
                     "title": (
                         f"Закрепить строку "
                         f"заголовков на листе "
-                        f"'{sheet_name}'"
+                        f"'{name}'"
                     ),
 
                     "engine": "excel",
@@ -131,22 +102,14 @@ def build_excel_plan(
                     ),
 
                     "data": {
-                        "sheet_name": (
-                            sheet_name
-                        ),
-
+                        "sheet_name": name,
                         "cell": "A2"
                     }
                 }
             )
 
-        # =============================================
-        # FILTER
-        # =============================================
-
         if (
-            max_row > 1
-            and max_column > 0
+            rows > 1
             and not sheet.get(
                 "auto_filter"
             )
@@ -154,60 +117,41 @@ def build_excel_plan(
                 "tables"
             )
         ):
-            columns = sheet.get(
-                "columns",
-                []
+            plan.append(
+                {
+                    "title": (
+                        f"Добавить фильтр "
+                        f"на лист '{name}'"
+                    ),
+
+                    "engine": "excel",
+
+                    "operation": (
+                        "add_filter"
+                    ),
+
+                    "data": {
+                        "sheet_name": name,
+
+                        "range": (
+                            f"A1:"
+                            f"{last_letter}"
+                            f"{rows}"
+                        )
+                    }
+                }
             )
-
-            if columns:
-                last_letter = (
-                    columns[-1]
-                    .get(
-                        "letter"
-                    )
-                )
-
-                if last_letter:
-                    plan.append(
-                        {
-                            "title": (
-                                f"Добавить фильтр "
-                                f"на лист "
-                                f"'{sheet_name}'"
-                            ),
-
-                            "engine": "excel",
-
-                            "operation": (
-                                "add_filter"
-                            ),
-
-                            "data": {
-                                "sheet_name": (
-                                    sheet_name
-                                ),
-
-                                "range": (
-                                    f"A1:"
-                                    f"{last_letter}"
-                                    f"{max_row}"
-                                )
-                            }
-                        }
-                    )
 
     return plan
 
 
 def build_word_plan(
-    analysis
+    analysis,
+    semantic=None
 ):
     plan = []
 
-    # =============================================
-    # ОСНОВНОЙ ШРИФТ
-    # =============================================
-
+    # Основной текст
     plan.append(
         {
             "title": (
@@ -231,20 +175,17 @@ def build_word_plan(
         }
     )
 
-    # =============================================
-    # ЗАГОЛОВКИ
-    # =============================================
-
-    headings = analysis.get(
+    # Заголовки
+    for heading in analysis.get(
         "headings",
         []
-    )
-
-    for heading in headings:
-        text = heading.get(
-            "text",
-            ""
-        )
+    ):
+        text = str(
+            heading.get(
+                "text",
+                ""
+            )
+        ).strip()
 
         if not text:
             continue
@@ -252,8 +193,7 @@ def build_word_plan(
         plan.append(
             {
                 "title": (
-                    f"Привести заголовок "
-                    f"к единому оформлению: "
+                    f"Оформить заголовок: "
                     f"{text}"
                 ),
 
@@ -277,11 +217,17 @@ def build_word_plan(
             }
         )
 
+    # Пока таблицы не перестраиваем,
+    # чтобы не рисковать содержимым.
+    # Только выводим рекомендацию,
+    # но не исполняем автоматически.
+
     return plan
 
 
 def build_improvement_plan(
-    analysis
+    analysis,
+    semantic=None
 ):
     if not analysis:
         return []
@@ -292,12 +238,14 @@ def build_improvement_plan(
 
     if document_type == "Excel":
         return build_excel_plan(
-            analysis
+            analysis,
+            semantic
         )
 
     if document_type == "Word":
         return build_word_plan(
-            analysis
+            analysis,
+            semantic
         )
 
     return []
