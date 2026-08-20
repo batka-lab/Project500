@@ -5,7 +5,12 @@ from actions import (
     open_app,
     open_folder,
     create_folder,
-    list_files
+    list_files,
+    show_found_files,
+    open_file,
+    read_file,
+    append_file,
+    open_latest_file
 )
 from brain import understand_command
 
@@ -14,7 +19,7 @@ print("Batka AI запущен!")
 
 
 while True:
-    command = input("Что нужно сделать? ").strip().lower()
+    command = input("Что нужно сделать? ").strip()
 
     intent = understand_command(command)
 
@@ -25,6 +30,7 @@ while True:
     app = intent.get("app", "")
     folder = intent.get("folder", "")
     folder_name = intent.get("folder_name", "")
+    extension = intent.get("extension", "")
 
     if action == "HELP":
         print("Доступные команды:")
@@ -32,6 +38,11 @@ while True:
         print("- открыть браузер")
         print("- найти что-нибудь в интернете")
         print("- создать текстовый файл")
+        print("- открыть файл")
+        print("- прочитать файл")
+        print("- добавить текст в файл")
+        print("- найти файл")
+        print("- открыть последний файл нужного типа")
         print("- открыть папку")
         print("- создать папку")
         print("- показать файлы в папке")
@@ -49,6 +60,21 @@ while True:
 
     elif action == "CREATE_FILE":
         create_file(filename, content)
+
+    elif action == "OPEN_FILE":
+        open_file(filename)
+
+    elif action == "READ_FILE":
+        read_file(filename)
+
+    elif action == "APPEND_FILE":
+        append_file(filename, content)
+
+    elif action == "FIND_FILE":
+        show_found_files(filename)
+
+    elif action == "OPEN_LATEST_FILE":
+        open_latest_file(folder, extension)
 
     elif action == "OPEN_FOLDER":
         open_folder(folder)
