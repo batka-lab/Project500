@@ -1,4 +1,4 @@
-from actions import open_notepad, open_browser
+from actions import open_notepad, open_browser, search_web
 from brain import understand_command
 
 print("Batka AI запущен!")
@@ -8,24 +8,31 @@ while True:
 
     intent = understand_command(command)
 
-    if intent == "HELP":
+    action = intent["action"]
+    query = intent.get("query", "")
+
+    if action == "HELP":
         print("Доступные команды:")
         print("- помощь")
         print("- открыть блокнот")
         print("- открыть браузер")
+        print("- найти что-нибудь в интернете")
         print("- привет")
         print("- выйти")
 
-    elif intent == "OPEN_NOTEPAD":
+    elif action == "OPEN_NOTEPAD":
         open_notepad()
 
-    elif intent == "OPEN_BROWSER":
+    elif action == "OPEN_BROWSER":
         open_browser()
 
-    elif intent == "HELLO":
+    elif action == "SEARCH_WEB":
+        search_web(query)
+
+    elif action == "HELLO":
         print("Привет! Batka AI на связи.")
 
-    elif intent == "EXIT":
+    elif action == "EXIT":
         print("Завершение работы программы...")
         break
 
