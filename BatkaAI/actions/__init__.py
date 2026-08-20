@@ -3,7 +3,7 @@ from BatkaAI.actions.system_actions import (
     open_browser,
     search_web,
     open_app,
-    open_folder
+    open_folder,
 )
 
 from BatkaAI.actions.file_actions import (
@@ -15,7 +15,7 @@ from BatkaAI.actions.file_actions import (
     open_file,
     read_file,
     append_file,
-    open_latest_file
+    open_latest_file,
 )
 
 from BatkaAI.actions.office_actions import (
@@ -23,9 +23,16 @@ from BatkaAI.actions.office_actions import (
     create_word,
     read_word,
     append_word,
-    add_word_heading
+    add_word_heading,
 )
 
 from BatkaAI.actions.excel_actions import (
-    excel_edit
+    excel_edit,
+)
+
+from BatkaAI.actions.document_actions import (
+    analyze_document,
+    analyze_document_command,
+    prepare_improvement_plan,
+    execute_improvement_plan,
 )
