@@ -11,7 +11,7 @@ def understand_command(command):
 
 Доступные действия:
 
-OPEN_NOTEPAD
+OPEN_APP
 OPEN_BROWSER
 SEARCH_WEB
 CREATE_FILE
@@ -26,56 +26,79 @@ UNKNOWN
     "action": "НАЗВАНИЕ_ДЕЙСТВИЯ",
     "query": "",
     "filename": "",
-    "content": ""
+    "content": "",
+    "app": ""
 }}
 
 Правила:
 
-1. Если пользователь хочет что-либо найти в интернете:
-   action = "SEARCH_WEB"
-   query = то, что нужно найти.
-   filename = ""
-   content = ""
+1. Если пользователь хочет открыть или запустить программу:
+   action = "OPEN_APP"
+   app = короткое название программы на английском.
+
+Примеры:
+блокнот -> notepad
+калькулятор -> calculator
+paint -> paint
+проводник -> explorer
 
 2. Если пользователь просто хочет открыть браузер:
    action = "OPEN_BROWSER"
-   query = ""
-   filename = ""
-   content = ""
 
-3. Если пользователь хочет открыть блокнот:
-   action = "OPEN_NOTEPAD"
-   query = ""
-   filename = ""
-   content = ""
+3. Если пользователь хочет что-либо найти в интернете:
+   action = "SEARCH_WEB"
+   query = то, что нужно найти.
 
-4. Если пользователь приветствует:
-   action = "HELLO"
-   query = ""
-   filename = ""
-   content = ""
-
-5. Если пользователь просит показать помощь:
-   action = "HELP"
-   query = ""
-   filename = ""
-   content = ""
-
-6. Если пользователь хочет завершить работу программы:
-   action = "EXIT"
-   query = ""
-   filename = ""
-   content = ""
-
-7. Если пользователь просит создать текстовый файл:
+4. Если пользователь просит создать текстовый файл:
    action = "CREATE_FILE"
-   filename = имя файла, которое указал пользователь
-   content = текст, который нужно записать в файл
-   query = ""
+   filename = имя файла
+   content = текст для файла
 
-Если пользователь не указал расширение файла, добавь .txt.
+Если расширение файла не указано, добавь .txt.
 
-Пример 1:
+5. Если пользователь приветствует:
+   action = "HELLO"
+
+6. Если пользователь просит помощь:
+   action = "HELP"
+
+7. Если пользователь хочет завершить программу:
+   action = "EXIT"
+
+8. Если намерение непонятно:
+   action = "UNKNOWN"
+
+Для всех неиспользуемых полей возвращай пустую строку.
+
+Пример:
+
+Пользователь:
+открой калькулятор
+
+Ответ:
+{{
+    "action": "OPEN_APP",
+    "query": "",
+    "filename": "",
+    "content": "",
+    "app": "calculator"
+}}
+
+Пример:
+
+Пользователь:
+запусти paint
+
+Ответ:
+{{
+    "action": "OPEN_APP",
+    "query": "",
+    "filename": "",
+    "content": "",
+    "app": "paint"
+}}
+
+Пример:
 
 Пользователь:
 найди в интернете Audi Q3 Sportback 2026
@@ -85,40 +108,9 @@ UNKNOWN
     "action": "SEARCH_WEB",
     "query": "Audi Q3 Sportback 2026",
     "filename": "",
-    "content": ""
+    "content": "",
+    "app": ""
 }}
-
-Пример 2:
-
-Пользователь:
-создай файл заметка.txt и напиши туда купить продукты
-
-Ответ:
-{{
-    "action": "CREATE_FILE",
-    "query": "",
-    "filename": "заметка.txt",
-    "content": "купить продукты"
-}}
-
-Пример 3:
-
-Пользователь:
-создай файл идеи и напиши туда разработать Batka AI
-
-Ответ:
-{{
-    "action": "CREATE_FILE",
-    "query": "",
-    "filename": "идеи.txt",
-    "content": "разработать Batka AI"
-}}
-
-8. Если намерение пользователя непонятно:
-   action = "UNKNOWN"
-   query = ""
-   filename = ""
-   content = ""
 
 Команда пользователя:
 {command}
@@ -151,7 +143,8 @@ if __name__ == "__main__":
     result = understand_command(test_command)
 
     print("Результат:", result)
-    print("Действие:", result["action"])
+    print("Действие:", result.get("action", ""))
+    print("Программа:", result.get("app", ""))
     print("Запрос:", result.get("query", ""))
     print("Имя файла:", result.get("filename", ""))
     print("Содержимое:", result.get("content", ""))

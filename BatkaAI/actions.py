@@ -25,30 +25,22 @@ def open_browser():
 def search_web(query):
     try:
         url = "https://www.google.com/search?q=" + quote_plus(query)
-
         webbrowser.open(url)
-
         print(f"Ищу в интернете: {query}")
-
     except Exception as e:
         print(f"Ошибка при поиске: {e}")
 
 
 def create_file(filename, content):
     try:
-        # Рабочий стол текущего пользователя
         desktop = Path.home() / "Desktop"
-
-        # Полный путь к создаваемому файлу
         file_path = desktop / filename
 
-        # Создаем файл и записываем текст
         file_path.write_text(
             content,
             encoding="utf-8"
         )
 
-        # Сразу открываем созданный файл в Блокноте
         subprocess.Popen(
             ["notepad.exe", str(file_path)]
         )
@@ -57,3 +49,23 @@ def create_file(filename, content):
 
     except Exception as e:
         print(f"Ошибка при создании файла: {e}")
+
+
+def open_app(app):
+    apps = {
+        "notepad": "notepad.exe",
+        "calculator": "calc.exe",
+        "paint": "mspaint.exe",
+        "explorer": "explorer.exe"
+    }
+
+    if app not in apps:
+        print(f"Программа пока не поддерживается: {app}")
+        return
+
+    try:
+        subprocess.Popen([apps[app]])
+        print(f"Программа запущена: {app}")
+
+    except Exception as e:
+        print(f"Ошибка при запуске программы {app}: {e}")
