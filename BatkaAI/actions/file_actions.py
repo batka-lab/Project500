@@ -8,6 +8,15 @@ from BatkaAI.services.paths import (
 )
 
 
+def normalize_text(text):
+    return (
+        str(text)
+        .lower()
+        .replace("ё", "е")
+        .strip()
+    )
+
+
 def create_file(filename, content):
     try:
         desktop = Path.home() / "Desktop"
@@ -84,8 +93,13 @@ def find_file(filename):
         print("Не указано имя файла для поиска.")
         return []
 
-    filename = filename.strip()
-    filename_lower = filename.lower()
+    search_text = normalize_text(filename)
+    search_words = [
+        word
+        for word in search_text.replace(".", " ").split()
+        if word
+    ]
+
     matches = []
 
     try:
@@ -101,14 +115,29 @@ def find_file(filename):
                 if item.name.startswith("~$"):
                     continue
 
-                if filename_lower in item.name.lower():
+                item_name = normalize_text(item.name)
+
+                # Сначала точное/частичное совпадение
+                direct_match = search_text in item_name
+
+                # Затем умный поиск по отдельным словам
+                words_match = (
+                    search_words
+                    and all(
+                        word in item_name
+                        for word in search_words
+                    )
+                )
+
+                if direct_match or words_match:
                     matches.append(item)
 
-        # Точное совпадение имени ставим первым
+        # Более точные совпадения ставим выше
         matches.sort(
             key=lambda item: (
-                item.name.lower() != filename_lower,
-                item.name.lower()
+                search_text not in normalize_text(item.name),
+                len(normalize_text(item.name)),
+                normalize_text(item.name)
             )
         )
 

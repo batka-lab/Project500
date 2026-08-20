@@ -19,7 +19,9 @@ from BatkaAI.actions.file_actions import (
 )
 
 from BatkaAI.actions.office_actions import (
+    word_edit,
     create_word,
     read_word,
-    append_word
+    append_word,
+    add_word_heading
 )
