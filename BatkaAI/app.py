@@ -11,8 +11,11 @@ from actions import (
     read_file,
     append_file,
     open_latest_file,
-    create_word
+    create_word,
+    read_word,
+    append_word
 )
+
 from brain import understand_command
 
 
@@ -50,6 +53,8 @@ while True:
             print("- найти что-нибудь в интернете")
             print("- создать текстовый файл")
             print("- создать документ Word")
+            print("- прочитать документ Word")
+            print("- добавить текст в документ Word")
             print("- открыть файл")
             print("- прочитать файл")
             print("- добавить текст в файл")
@@ -76,6 +81,12 @@ while True:
 
         elif action == "CREATE_WORD":
             create_word(filename, content)
+
+        elif action == "READ_WORD":
+            read_word(filename)
+
+        elif action == "APPEND_WORD":
+            append_word(filename, content)
 
         elif action == "OPEN_FILE":
             open_file(filename)
